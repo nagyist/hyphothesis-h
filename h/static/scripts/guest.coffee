@@ -47,16 +47,7 @@ class Annotator.Guest extends Annotator
     delete @options.app
 
     this.addPlugin 'Bridge',
-      formatter: (annotation) =>
-        formatted = {}
-        formatted['uri'] = @getHref()
-        for k, v of annotation when k isnt 'anchors'
-          formatted[k] = v
-        # Work around issue in jschannel where a repeated object is considered
-        # recursive, even if it is not its own ancestor.
-        if formatted.document?.title
-          formatted.document.title = formatted.document.title.slice()
-        formatted
+      formatter: @formatAnnotation
       onConnect: (source, origin, scope) =>
         @panel = this._setupXDM
           window: source
@@ -118,6 +109,27 @@ class Annotator.Guest extends Annotator
 
       # Announce the new positions, so that the sidebar knows
       this.plugins.Bridge.sync([highlight.annotation])
+
+  # Used by the bridge plugin to transfer annotation data
+  formatAnnotation: (annotation) =>
+    formatted = {}
+    formatted['uri'] = @getHref()
+    for k, v of annotation when k isnt 'anchors'
+      formatted[k] = v
+    # Work around issue in jschannel where a repeated object is considered
+    # recursive, even if it is not its own ancestor.
+    if formatted.document?.title
+      formatted.document.title = formatted.document.title.slice()
+
+    # We remove local file paths that means
+    # removing hrefs starting with file://
+    # The filename is already stored in document.title
+    if formatted.document?.link?
+      formatted.document.link = formatted.document.link.filter (element) ->
+        # String.prototype.startsWith is only supported by FF and Chrome
+        element.href.toLowerCase().indexOf('file://') != 0
+
+    formatted
 
   # Utility function to get the decoded form of the document URI
   getHref: =>
