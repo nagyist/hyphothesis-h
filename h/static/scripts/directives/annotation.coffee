@@ -18,6 +18,9 @@ validate = (value) ->
   (value.tags?.length or value.text?.length) or
   (value.target?.length and not worldReadable)
 
+# Visibility constants for to store last used
+VISIBILITY_PUBLIC = 'public'
+VISIBILITY_PRIVATE = 'private'
 
 ###*
 # @ngdoc type
@@ -38,9 +41,9 @@ validate = (value) ->
 ###
 AnnotationController = [
   '$scope', '$timeout',
-  'annotator', 'drafts', 'flash', 'documentHelpers', 'timeHelpers',
+  'annotator', 'drafts', 'flash', 'documentHelpers', 'localStorageHelpers', 'timeHelpers',
   ($scope,   $timeout,
-   annotator,   drafts,   flash,   documentHelpers,   timeHelpers
+   annotator,   drafts,   flash,   documentHelpers,   localStorageHelpers,   timeHelpers
   ) ->
     @annotation = {}
     @action = 'view'
@@ -114,6 +117,11 @@ AnnotationController = [
       @editing = true
       @preview = 'no'
 
+      # Set sticky permission for root level annotations
+      storedPrivacy = localStorageHelpers.getPrivacy()
+      if not model.references and storedPrivacy  is VISIBILITY_PUBLIC
+        model.permissions?.read.push 'group:__world__'
+
     ###*
     # @ngdoc method
     # @name annotation.AnnotationController#view
@@ -147,6 +155,11 @@ AnnotationController = [
           annotator.publish 'annotationCreated', model
         when 'delete', 'edit'
           annotator.publish 'annotationUpdated', model
+
+      if @isPrivate()
+        localStorageHelpers.setPrivacy VISIBILITY_PRIVATE
+      else
+        localStorageHelpers.setPrivacy VISIBILITY_PUBLIC
 
       @editing = false
       @action = 'view'
