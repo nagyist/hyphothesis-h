@@ -306,6 +306,10 @@ annotation = [
           scope.$evalAsync ->
             ctrl.save()
 
+      isShareOpen = -> elem.find('.share-dialog-wrapper').hasClass('open')
+      scope.$watch isShareOpen, (isOpen) ->
+        elem.find('.share-dialog-wrapper input').focus().select() if isOpen
+
       # Keep track of edits going on in the thread.
       if counter?
         # Expand the thread if descendants are editing.
